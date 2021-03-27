@@ -3,14 +3,15 @@
 Usage: provconstraints.py <path of turtle file to check>
 """
 
-import rdflib
+import argparse
+import logging
 import os
-import sys
-import getopt
+
+import rdflib
 from rdflib.plugins.sparql.processor import prepareQuery
 from rdflib.plugins.sparql.processor import processUpdate
 
-
+_logger = logging.getLogger(os.path.basename(__file__))
 
 #Testing queries
 qMakeCycle = '''
@@ -609,7 +610,6 @@ unique_endTime = '''
 
 impossible_unspecified_derivation_generation_use = '''
     PREFIX prov: <http://www.w3.org/ns/prov#>
-    PREFIX c: <http://www.few.vu.nl/pgroth/provconstraints#>
 
     select ?d where {
         { ?d a prov:Derivation .
@@ -696,7 +696,6 @@ impossible_object_property_overlap = '''
 
 entity_activity_disjoint = '''
     PREFIX prov: <http://www.w3.org/ns/prov#>
-    PREFIX c: <http://www.few.vu.nl/pgroth/provconstraints#>
 
     select ?e where {
         ?e a prov:Entity, prov:Activity .
@@ -1277,9 +1276,9 @@ def checkTypeConstraints(g):
 def check(g, q):
     bindings = g.query(q)
     if len(bindings) > 0:
-        #for b in bindings:
-        #    print b
-        #print q
+        for b in bindings:
+            _logger.debug(b)
+        _logger.debug(q)
         return False
     else:
         return True
@@ -1345,20 +1344,15 @@ def testAllConstraints(dirs):
 
 def main():
     # parse command line options
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
-    except getopt.GetoptError as msg:
-        print(msg)
-        print("for help use --help")
-        sys.exit(2)
-    # process options
-    for o, a in opts:
-        if o in ("-h", "--help"):
-            print(__doc__)
-            sys.exit(0)
+    argument_parser = argparse.ArgumentParser(description=__doc__)
+    argument_parser.add_argument("--debug", action="store_true")
+    argument_parser.add_argument("input_ttl", nargs="+")
+    args = argument_parser.parse_args()
 
-    for arg in args:
-        validate(arg)
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
+
+    for input_ttl in args.input_ttl:
+        validate(input_ttl)
 
 if __name__ == "__main__":
     main()
